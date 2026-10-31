@@ -1,0 +1,47 @@
+{
+  "project": "flappy-bird-3d",
+  "description": "A polished 3D Flappy Bird game in a single self-contained HTML file, built with Three.js.",
+  "build": {
+    "startedAt": "2026-10-31T17:03:58.311Z",
+    "completedAt": "2026-10-31T17:19:37.717Z",
+    "durationSeconds": 939.4,
+    "durationHuman": "15m 39s",
+    "timezone": "UTC"
+  },
+  "tokens": {
+    "input": 20009,
+    "output": 28710,
+    "reasoning": 53708,
+    "cacheRead": 2220928,
+    "cacheWrite": 0,
+    "total": 102427,
+    "totalWithCache": 2323355,
+    "note": "Snapshot from the OpenCode session record when the project was packaged. total = input + output + reasoning. Cache reads/writes are reported separately because they are a subset of context usage."
+  },
+  "cost": {
+    "usd": 0.0,
+    "note": "As reported by the OpenCode session record."
+  },
+  "sessionId": "ses_e6d14fab1ffe1Ks130scR0fjdU",
+  "model": {
+    "name": "DeepSeek V4.1 Flash",
+    "providerID": "opencode-go",
+    "modelID": "deepseek-v4.1-flash"
+  },
+  "harness": {
+    "name": "OpenCode",
+    "version": "2.2.5"
+  },
+  "repository": "https://github.com/somphol/flappy-bird-3d",
+  "pages": "https://somphol.github.io/flappy-bird-3d/",
+  "artifacts": [
+    "index.html",
+    "README.md",
+    "STATE.md",
+    "state.json",
+    "screenshot.png",
+    "screenshot-menu.png",
+    "LICENSE"
+  ],
+  "credits": "Built with OpenCode and DeepSeek V4.1 Flash."
+}

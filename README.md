@@ -4,6 +4,8 @@ A complete, polished 3D Flappy Bird game in **one self-contained HTML file**. Bu
 
 ![Flappy Bird 3D gameplay](screenshot.png)
 
+**Live demo:** <https://somphol.github.io/flappy-bird-3d/>
+
 ## Play
 
 Open `index.html` in a modern browser, or serve the folder locally:
