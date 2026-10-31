@@ -157,7 +157,8 @@
     }
 
     #sound,
-    #recenter {
+    #recenter,
+    #flipView {
       pointer-events: auto;
       width: 44px;
       height: 44px;
@@ -175,13 +176,15 @@
     }
 
     #sound:hover,
-    #recenter:hover {
+    #recenter:hover,
+    #flipView:hover {
       transform: scale(1.06);
       background: rgba(14, 38, 72, 0.72);
     }
 
     #sound:active,
-    #recenter:active {
+    #recenter:active,
+    #flipView:active {
       transform: scale(0.96);
     }
 
@@ -358,7 +361,8 @@
 
     button.primary:focus-visible,
     #sound:focus-visible,
-    #recenter:focus-visible {
+    #recenter:focus-visible,
+    #flipView:focus-visible {
       outline: 2px solid var(--cyan);
       outline-offset: 3px;
     }
@@ -534,6 +538,18 @@
         font-size: clamp(50px, 18vw, 76px);
       }
 
+      .hud-block.right {
+        gap: 4px;
+      }
+
+      #sound,
+      #recenter,
+      #flipView {
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+      }
+
       .card {
         border-radius: 24px;
         padding: 28px 22px;
@@ -619,12 +635,13 @@
         <div id="score">0</div>
       </div>
       <div class="hud-block right">
+        <button id="flipView" type="button" aria-label="Flip side view" title="Flip side view (F)">⇆</button>
         <button id="recenter" type="button" aria-label="Recenter view" title="Recenter view (R)">⌖</button>
         <button id="sound" type="button" aria-label="Toggle sound" title="Toggle sound">🔊</button>
       </div>
     </header>
 
-    <div id="lookHint" class="look-hint" aria-hidden="true">Drag / arrow keys to look around</div>
+    <div id="lookHint" class="look-hint" aria-hidden="true">Drag / arrows to orbit · F flips</div>
 
     <section id="menu" class="overlay" aria-label="Start screen">
       <div class="card menu-card">
@@ -632,7 +649,7 @@
         <h1>FLAPPY<span>3D</span></h1>
         <p class="tagline">Thread the pipes. Chase the horizon. One tiny flap at a time.</p>
         <button id="startBtn" class="primary" type="button">Press Space / Tap to Fly</button>
-        <p class="hint">Space or tap to flap · drag to look</p>
+        <p class="hint">Space or tap to flap · drag to orbit</p>
         <p class="credits">Built with <strong>OpenCode</strong> × <strong>DeepSeek V4.1 Flash</strong></p>
       </div>
     </section>
@@ -653,7 +670,7 @@
         </div>
         <div id="newBest" class="badge hidden">New Best!</div>
         <button id="restartBtn" class="primary" type="button">Tap / Press Space to Restart</button>
-        <p class="hint">Drag to look · R to recenter</p>
+        <p class="hint">Drag to orbit · R to recenter</p>
       </div>
     </section>
 
@@ -697,6 +714,7 @@
     const flashEl = document.getElementById("flash");
     const soundBtn = document.getElementById("sound");
     const recenterBtn = document.getElementById("recenter");
+    const flipViewBtn = document.getElementById("flipView");
     const lookHint = document.getElementById("lookHint");
     const startBtn = document.getElementById("startBtn");
     const restartBtn = document.getElementById("restartBtn");
@@ -739,8 +757,9 @@
       newBest: false
     };
 
-    const LOOK_YAW_LIMIT = 1.15;
+    const LOOK_YAW_LIMIT = Math.PI;
     const LOOK_PITCH_LIMIT = 0.55;
+    const LOOK_SIDE_YAW = Math.PI / 2;
     const LOOK_DRAG_YAW = 0.0035;
     const LOOK_DRAG_PITCH = 0.003;
     const LOOK_KEY_YAW = 1.7;
@@ -1638,6 +1657,12 @@
       dismissLookHint();
     }
 
+    function flipView() {
+      const isRightSide = Math.abs(look.targetYaw - LOOK_SIDE_YAW) < 0.35;
+      look.targetYaw = isRightSide ? -LOOK_SIDE_YAW : LOOK_SIDE_YAW;
+      dismissLookHint();
+    }
+
     function updateLookFromKeys(delta) {
       let changed = false;
 
@@ -1838,16 +1863,22 @@
       const shake = state.crashShake * 0.34;
       state.crashShake = Math.max(0, state.crashShake - delta * 1.7);
 
-      camera.position.x = 0.7 + (Math.random() - 0.5) * shake;
-      camera.position.y =
-        3.35 +
-        bird.position.y * 0.32 +
-        (Math.random() - 0.5) * shake;
-      camera.position.z = 9.5 + (Math.random() - 0.5) * shake * 0.45;
+      // Orbit the camera around the bird. At yaw 0 this is the familiar
+      // over-the-shoulder chase view; ±90° gives a side profile and 180°
+      // gives a front-on view.
+      const orbitSin = Math.sin(look.yaw);
+      const orbitCos = Math.cos(look.yaw);
+      const orbitX = 0.7 * orbitCos + 9.5 * orbitSin;
+      const orbitZ = -0.7 * orbitSin + 9.5 * orbitCos;
+      const focusY = 0.9 + bird.position.y * 0.32;
+
+      camera.position.x = orbitX + (Math.random() - 0.5) * shake;
+      camera.position.y = focusY + 2.45 + (Math.random() - 0.5) * shake;
+      camera.position.z = orbitZ + (Math.random() - 0.5) * shake * 0.45;
 
       const lookDistance = 28;
       const lookPitchCos = Math.cos(look.pitch);
-      const lookX = Math.sin(look.yaw) * lookDistance * lookPitchCos;
+      const lookX = -Math.sin(look.yaw) * lookDistance * lookPitchCos;
       const lookY =
         0.92 +
         bird.position.y * 0.22 +
@@ -1882,6 +1913,12 @@
         if (event.code === "KeyR") {
           event.preventDefault();
           resetLook();
+          return;
+        }
+
+        if (event.code === "KeyF") {
+          event.preventDefault();
+          flipView();
           return;
         }
 
@@ -2056,6 +2093,11 @@
       resetLook();
     });
 
+    flipViewBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      flipView();
+    });
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         lookKeys.clear();
@@ -2105,6 +2147,7 @@
       flap,
       crash,
       resetLook,
+      flipView,
       state,
       look,
       get score() {

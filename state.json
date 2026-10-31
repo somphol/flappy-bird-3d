@@ -3,19 +3,19 @@
   "description": "A polished 3D Flappy Bird game in a single self-contained HTML file, built with Three.js.",
   "build": {
     "startedAt": "2026-10-31T17:03:58.311Z",
-    "completedAt": "2026-10-31T17:33:24.294Z",
-    "durationSeconds": 1766.0,
-    "durationHuman": "29m 26s",
+    "completedAt": "2026-10-31T17:46:15.711Z",
+    "durationSeconds": 2537.4,
+    "durationHuman": "42m 17s",
     "timezone": "UTC"
   },
   "tokens": {
-    "input": 42408,
-    "output": 44513,
-    "reasoning": 73272,
-    "cacheRead": 7575168,
+    "input": 62247,
+    "output": 58500,
+    "reasoning": 96571,
+    "cacheRead": 14147584,
     "cacheWrite": 0,
-    "total": 160193,
-    "totalWithCache": 7735361,
+    "total": 217318,
+    "totalWithCache": 14364902,
     "note": "Snapshot from the OpenCode session record when the project was packaged. total = input + output + reasoning. Cache reads/writes are reported separately because they are a subset of context usage."
   },
   "cost": {
