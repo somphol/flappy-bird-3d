@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#071329" />
+  <meta name="description" content="Flappy Bird 3D — a polished single-file Three.js arcade flight game." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='34' r='22' fill='%23ffd93d'/%3E%3Cpath d='M20 24c-8 4-10 12-6 18 5 7 14 8 20 3' fill='%23ffb703'/%3E%3Ccircle cx='40' cy='29' r='4' fill='%2306101f'/%3E%3Cpath d='M46 37l10 4-10 5z' fill='%23ff7a00'/%3E%3C/svg%3E" />
+  <title>Flappy Bird 3D</title>
+  <style>
+    :root {
+      --ink: #071329;
+      --ink-2: #0b1d3d;
+      --cream: #fff7df;
+      --gold: #ffd166;
+      --hot: #ff5d5d;
+      --cyan: #64f4ff;
+      --green: #49ff8a;
+      --card: rgba(7, 19, 41, 0.82);
+      --line: rgba(137, 231, 255, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    body {
+      color: var(--cream);
+      font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      isolation: isolate;
+    }
+
+    #scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 44%, transparent 34%, rgba(3, 8, 20, 0.18) 68%, rgba(2, 6, 16, 0.62) 100%),
+        linear-gradient(180deg, rgba(3, 8, 20, 0.22), transparent 22%, transparent 72%, rgba(3, 8, 20, 0.28));
+    }
+
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 6;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: start;
+      padding: max(18px, env(safe-area-inset-top)) clamp(18px, 4vw, 48px) 0;
+      pointer-events: none;
+    }
+
+    .hud-block {
+      min-width: 62px;
+    }
+
+    .hud-block.right {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    #best {
+      color: rgba(255, 255, 255, 0.9);
+      font-family: "Arial Black", Impact, "Trebuchet MS", sans-serif;
+      font-size: clamp(20px, 3vw, 30px);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    .score-wrap {
+      min-width: 150px;
+      text-align: center;
+      transform: translateY(-3px);
+    }
+
+    .score-wrap .label {
+      color: rgba(100, 244, 255, 0.78);
+      letter-spacing: 0.34em;
+      text-shadow: 0 0 14px rgba(100, 244, 255, 0.35);
+    }
+
+    #score {
+      display: inline-block;
+      color: #ffffff;
+      font-family: "Arial Black", Impact, "Trebuchet MS", sans-serif;
+      font-size: clamp(58px, 10vw, 104px);
+      font-weight: 900;
+      line-height: 0.82;
+      letter-spacing: -0.06em;
+      -webkit-text-stroke: 2px var(--ink);
+      text-shadow:
+        0 0 20px rgba(100, 244, 255, 0.55),
+        0 7px 0 rgba(7, 19, 41, 0.5),
+        0 14px 30px rgba(0, 0, 0, 0.28);
+      transform: skew(-4deg);
+      transform-origin: 50% 60%;
+    }
+
+    #score.pop {
+      animation: scorePop 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+    }
+
+    @keyframes scorePop {
+      0% { transform: skew(-4deg) scale(1); }
+      35% { transform: skew(-4deg) scale(1.22); }
+      100% { transform: skew(-4deg) scale(1); }
+    }
+
+    #sound {
+      pointer-events: auto;
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(159, 235, 255, 0.24);
+      border-radius: 50%;
+      background: rgba(6, 18, 40, 0.52);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.24);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    #sound:hover {
+      transform: scale(1.06);
+      background: rgba(14, 38, 72, 0.72);
+    }
+
+    #sound:active {
+      transform: scale(0.96);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(4, 12, 30, 0) 0%, rgba(4, 12, 30, 0.12) 42%, rgba(4, 12, 30, 0.62) 100%);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .card {
+      width: min(530px, 92vw);
+      padding: clamp(28px, 5vw, 48px);
+      overflow: hidden;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background:
+        linear-gradient(160deg, rgba(17, 39, 82, 0.92), rgba(5, 13, 31, 0.9) 62%, rgba(8, 20, 42, 0.94));
+      box-shadow:
+        0 34px 100px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 0 70px rgba(51, 200, 255, 0.08);
+      backdrop-filter: blur(22px) saturate(145%);
+      -webkit-backdrop-filter: blur(22px) saturate(145%);
+      animation: cardIn 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.08) both;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(100, 244, 255, 0.14), transparent 34%),
+        radial-gradient(circle at 86% 100%, rgba(255, 93, 93, 0.12), transparent 38%);
+    }
+
+    @keyframes cardIn {
+      0% { opacity: 0; transform: translateY(18px) scale(0.97); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .eyebrow {
+      position: relative;
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.34em;
+      line-height: 1.4;
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(100, 244, 255, 0.4);
+    }
+
+    h1 {
+      position: relative;
+      margin: 14px 0 10px;
+      color: #fff;
+      font-family: "Arial Black", Impact, "Trebuchet MS", sans-serif;
+      font-size: clamp(52px, 10vw, 88px);
+      font-weight: 900;
+      line-height: 0.78;
+      letter-spacing: -0.075em;
+      text-shadow:
+        0 0 34px rgba(255, 209, 102, 0.26),
+        0 8px 0 rgba(0, 0, 0, 0.3),
+        0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 span {
+      display: block;
+      margin-top: 14px;
+      color: var(--gold);
+      font-size: 0.52em;
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      -webkit-text-stroke: 0;
+      text-shadow: 0 0 28px rgba(255, 209, 102, 0.42);
+    }
+
+    h2 {
+      position: relative;
+      margin: 12px 0 22px;
+      color: #fff;
+      font-family: "Arial Black", Impact, "Trebuchet MS", sans-serif;
+      font-size: clamp(38px, 8vw, 62px);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      text-shadow: 0 0 26px rgba(255, 93, 93, 0.28), 0 6px 0 rgba(0, 0, 0, 0.28);
+    }
+
+    .tagline {
+      position: relative;
+      margin: 0 auto 30px;
+      max-width: 330px;
+      color: rgba(255, 255, 255, 0.64);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.55;
+      letter-spacing: 0.06em;
+    }
+
+    button.primary {
+      position: relative;
+      pointer-events: auto;
+      width: 100%;
+      border: 0;
+      border-radius: 999px;
+      padding: 17px 24px;
+      background: linear-gradient(135deg, #ffe08a 0%, #ffbe55 24%, #ff7a59 62%, #ff4d8d 100%);
+      color: #081226;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      line-height: 1.25;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow:
+        0 16px 34px rgba(255, 93, 93, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+      transition: transform 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    button.primary:hover {
+      filter: brightness(1.07) saturate(1.05);
+      transform: translateY(-2px) scale(1.012);
+      box-shadow:
+        0 20px 44px rgba(255, 93, 93, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+
+    button.primary:active {
+      transform: translateY(1px) scale(0.99);
+      filter: brightness(0.98);
+    }
+
+    button.primary:focus-visible,
+    #sound:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    .hint {
+      position: relative;
+      margin: 18px 0 0;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1.5;
+      text-transform: uppercase;
+    }
+
+    .credits {
+      position: relative;
+      margin: 24px 0 0;
+      color: rgba(255, 255, 255, 0.34);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      line-height: 1.7;
+      text-transform: uppercase;
+    }
+
+    .credits strong {
+      color: rgba(255, 255, 255, 0.68);
+      font-weight: 800;
+    }
+
+    .stats {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 0 0 24px;
+    }
+
+    .stats > div {
+      padding: 15px 12px 13px;
+      border: 1px solid rgba(137, 231, 255, 0.14);
+      border-radius: 18px;
+      background: rgba(4, 12, 28, 0.34);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .stats span {
+      display: block;
+      margin-bottom: 7px;
+      color: rgba(255, 255, 255, 0.46);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.26em;
+    }
+
+    .stats strong {
+      display: block;
+      color: #fff;
+      font-family: "Arial Black", Impact, "Trebuchet MS", sans-serif;
+      font-size: clamp(30px, 5vw, 42px);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    .badge {
+      position: relative;
+      display: inline-block;
+      margin: -6px 0 22px;
+      padding: 8px 15px;
+      border: 1px solid rgba(255, 209, 102, 0.38);
+      border-radius: 999px;
+      background: rgba(255, 209, 102, 0.1);
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      box-shadow: 0 0 22px rgba(255, 209, 102, 0.12);
+      animation: badgeGlow 1.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes badgeGlow {
+      from { box-shadow: 0 0 16px rgba(255, 209, 102, 0.08); }
+      to { box-shadow: 0 0 30px rgba(255, 209, 102, 0.28); }
+    }
+
+    #flash {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      background: #ff4d4d;
+      opacity: 0;
+    }
+
+    #flash.hit {
+      animation: hitFlash 0.5s ease-out;
+    }
+
+    @keyframes hitFlash {
+      0% { opacity: 0.72; }
+      100% { opacity: 0; }
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, #123066 0%, #071329 58%, #040b18 100%);
+      transition: opacity 0.55s ease;
+    }
+
+    #loading.done {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader {
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+
+    .loader-ring {
+      width: 46px;
+      height: 46px;
+      border: 2px solid rgba(100, 244, 255, 0.18);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 24px rgba(100, 244, 255, 0.18);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .load-error {
+      max-width: 330px;
+      padding: 28px;
+      color: #fff;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .load-error small {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    @media (max-width: 640px) {
+      #hud {
+        padding-top: max(14px, env(safe-area-inset-top));
+      }
+
+      .score-wrap {
+        min-width: 100px;
+      }
+
+      #score {
+        font-size: clamp(50px, 18vw, 76px);
+      }
+
+      .card {
+        border-radius: 24px;
+        padding: 28px 22px;
+      }
+
+      h1 {
+        font-size: clamp(48px, 16vw, 70px);
+      }
+
+      h2 {
+        font-size: clamp(34px, 12vw, 50px);
+      }
+
+      .tagline {
+        margin-bottom: 24px;
+      }
+
+      button.primary {
+        padding: 16px 16px;
+        font-size: 10px;
+      }
+
+      .hint {
+        margin-top: 14px;
+      }
+
+      .credits {
+        margin-top: 18px;
+      }
+    }
+
+    @media (max-height: 620px) {
+      .card {
+        padding-top: 22px;
+        padding-bottom: 22px;
+      }
+
+      h1 {
+        margin-top: 8px;
+        font-size: clamp(42px, 9vw, 64px);
+      }
+
+      h1 span {
+        margin-top: 8px;
+      }
+
+      .tagline {
+        margin-bottom: 18px;
+      }
+
+      .credits {
+        margin-top: 14px;
+      }
+
+      h2 {
+        margin-bottom: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <canvas id="scene" aria-label="Flappy Bird 3D game scene"></canvas>
+    <div id="vignette" aria-hidden="true"></div>
+
+    <header id="hud" aria-live="polite">
+      <div class="hud-block">
+        <span class="label">Best</span>
+        <span id="best">0</span>
+      </div>
+      <div class="score-wrap">
+        <span class="label">Score</span>
+        <div id="score">0</div>
+      </div>
+      <div class="hud-block right">
+        <button id="sound" type="button" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+      </div>
+    </header>
+
+    <section id="menu" class="overlay" aria-label="Start screen">
+      <div class="card menu-card">
+        <div class="eyebrow">OpenCode Arcade</div>
+        <h1>FLAPPY<span>3D</span></h1>
+        <p class="tagline">Thread the pipes. Chase the horizon. One tiny flap at a time.</p>
+        <button id="startBtn" class="primary" type="button">Press Space / Tap to Fly</button>
+        <p class="hint">Space, click, or tap to flap</p>
+        <p class="credits">Built with <strong>OpenCode</strong> × <strong>DeepSeek V4.1 Flash</strong></p>
+      </div>
+    </section>
+
+    <section id="gameover" class="overlay hidden" aria-label="Game over">
+      <div class="card gameover-card">
+        <div class="eyebrow">Flight Log</div>
+        <h2>GAME OVER</h2>
+        <div class="stats">
+          <div>
+            <span>Score</span>
+            <strong id="finalScore">0</strong>
+          </div>
+          <div>
+            <span>Best</span>
+            <strong id="finalBest">0</strong>
+          </div>
+        </div>
+        <div id="newBest" class="badge hidden">New Best!</div>
+        <button id="restartBtn" class="primary" type="button">Tap / Press Space to Restart</button>
+        <p class="hint">Keep the bird between the pipes</p>
+      </div>
+    </section>
+
+    <div id="flash" aria-hidden="true"></div>
+
+    <div id="loading">
+      <div class="loader">
+        <div class="loader-ring" aria-hidden="true"></div>
+        <span>Loading sky</span>
+      </div>
+    </div>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    const loadingEl = document.getElementById("loading");
+    let THREE;
+
+    try {
+      THREE = await import("three");
+    } catch (error) {
+      loadingEl.innerHTML = '<div class="load-error">Three.js could not be loaded.<br><small>Check your internet connection and reload.</small></div>';
+      throw error;
+    }
+
+    const canvas = document.getElementById("scene");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+    const finalScoreEl = document.getElementById("finalScore");
+    const finalBestEl = document.getElementById("finalBest");
+    const newBestEl = document.getElementById("newBest");
+    const menuEl = document.getElementById("menu");
+    const gameoverEl = document.getElementById("gameover");
+    const flashEl = document.getElementById("flash");
+    const soundBtn = document.getElementById("sound");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    const STORAGE_BEST = "flappy3d.best";
+    const STORAGE_SOUND = "flappy3d.sound";
+    const GROUND_Y = -4.6;
+    const BIRD_MIN_Y = -4.05;
+    const BIRD_MAX_Y = 5.2;
+    const GRAVITY = -25;
+    const FLAP_VELOCITY = 8.4;
+
+    function readBest() {
+      try {
+        const value = Number(localStorage.getItem(STORAGE_BEST));
+        return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function readSound() {
+      try {
+        return localStorage.getItem(STORAGE_SOUND) !== "off";
+      } catch {
+        return true;
+      }
+    }
+
+    let best = readBest();
+    let soundOn = readSound();
+
+    const state = {
+      phase: "menu",
+      score: 0,
+      speed: 14,
+      overTimer: 0,
+      gameOverShown: false,
+      crashShake: 0,
+      newBest: false
+    };
+
+    let birdVelocity = 0;
+    let wingPhase = 0;
+    let elapsed = 0;
+    const clock = new THREE.Clock();
+
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+    } catch (error) {
+      loadingEl.innerHTML = '<div class="load-error">WebGL could not start.<br><small>Try a browser with hardware acceleration enabled.</small></div>';
+      throw error;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.16;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x9ac9e8, 55, 195);
+
+    const camera = new THREE.PerspectiveCamera(
+      62,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      340
+    );
+    camera.position.set(0.7, 3.4, 9.5);
+
+    /* ------------------------------------------------------------------ */
+    /* Sky, sun and light                                                  */
+    /* ------------------------------------------------------------------ */
+
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(290, 32, 18),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(0x1b4bd6) },
+          horizonColor: { value: new THREE.Color(0xffb26b) },
+          bottomColor: { value: new THREE.Color(0x063d66) }
+        },
+        vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 topColor;
+          uniform vec3 horizonColor;
+          uniform vec3 bottomColor;
+          varying vec3 vWorldPosition;
+          void main() {
+            float h = normalize(vWorldPosition).y;
+            vec3 color = mix(horizonColor, topColor, smoothstep(0.0, 0.38, h));
+            color = mix(bottomColor, color, smoothstep(-0.34, 0.02, h));
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `
+      })
+    );
+    sky.frustumCulled = false;
+    scene.add(sky);
+
+    scene.add(new THREE.HemisphereLight(0xc9f1ff, 0x18213d, 1.45));
+    scene.add(new THREE.AmbientLight(0x7f8dff, 0.52));
+
+    const sunLight = new THREE.DirectionalLight(0xffe6b0, 3.1);
+    sunLight.position.set(-24, 34, 16);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(2048, 2048);
+    sunLight.shadow.camera.left = -44;
+    sunLight.shadow.camera.right = 44;
+    sunLight.shadow.camera.top = 42;
+    sunLight.shadow.camera.bottom = -32;
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 130;
+    sunLight.shadow.bias = -0.00045;
+    sunLight.shadow.normalBias = 0.035;
+    sunLight.target.position.set(0, 0, -48);
+    sunLight.shadow.camera.updateProjectionMatrix();
+    scene.add(sunLight, sunLight.target);
+
+    function makeGlowTexture() {
+      const size = 256;
+      const textureCanvas = document.createElement("canvas");
+      textureCanvas.width = size;
+      textureCanvas.height = size;
+      const context = textureCanvas.getContext("2d");
+      const gradient = context.createRadialGradient(
+        size / 2,
+        size / 2,
+        0,
+        size / 2,
+        size / 2,
+        size / 2
+      );
+      gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+      gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.72)");
+      gradient.addColorStop(0.55, "rgba(255, 255, 255, 0.18)");
+      gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, size, size);
+      const texture = new THREE.CanvasTexture(textureCanvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const glowTexture = makeGlowTexture();
+
+    const sunGlow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTexture,
+        color: 0xffd166,
+        transparent: true,
+        opacity: 0.92,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        fog: false
+      })
+    );
+    sunGlow.position.set(44, 38, -195);
+    sunGlow.scale.set(58, 58, 1);
+    scene.add(sunGlow);
+
+    const sunCore = new THREE.Mesh(
+      new THREE.SphereGeometry(5.5, 24, 16),
+      new THREE.MeshBasicMaterial({ color: 0xfff3c4, fog: false })
+    );
+    sunCore.position.copy(sunGlow.position);
+    scene.add(sunCore);
+
+    /* ------------------------------------------------------------------ */
+    /* Clouds, ground, corridor and speed particles                        */
+    /* ------------------------------------------------------------------ */
+
+    const cloudMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      flatShading: true,
+      emissive: 0x8fb7ff,
+      emissiveIntensity: 0.07
+    });
+
+    const cloudPuffGeometry = new THREE.SphereGeometry(1, 10, 8);
+    const clouds = [];
+
+    function makeCloud() {
+      const cloud = new THREE.Group();
+      const puffs = 4 + Math.floor(Math.random() * 5);
+
+      for (let i = 0; i < puffs; i += 1) {
+        const puff = new THREE.Mesh(cloudPuffGeometry, cloudMaterial);
+        const size = 0.8 + Math.random() * 1.5;
+        puff.position.set(
+          (Math.random() - 0.5) * 5.2,
+          (Math.random() - 0.5) * 1.4,
+          (Math.random() - 0.5) * 3.2
+        );
+        puff.scale.set(size * 1.25, size * 0.72, size);
+        cloud.add(puff);
+      }
+
+      cloud.position.set(
+        (Math.random() - 0.5) * 76,
+        8 + Math.random() * 15,
+        -20 - Math.random() * 178
+      );
+      cloud.scale.setScalar(1.2 + Math.random() * 2.1);
+      cloud.userData.speed = 1.4 + Math.random() * 3.1;
+      cloud.userData.phase = Math.random() * Math.PI * 2;
+      cloud.userData.baseY = cloud.position.y;
+      scene.add(cloud);
+      clouds.push(cloud);
+    }
+
+    for (let i = 0; i < 11; i += 1) {
+      makeCloud();
+    }
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(340, 440),
+      new THREE.MeshStandardMaterial({
+        color: 0x06425f,
+        roughness: 0.34,
+        metalness: 0.5
+      })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(0, GROUND_Y, -112);
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(350, 124, 0x56f6ff, 0x1b7a9a);
+    grid.position.set(0, GROUND_Y + 0.03, -112);
+    grid.material.transparent = true;
+    grid.material.opacity = 0.17;
+    grid.material.depthWrite = false;
+    scene.add(grid);
+
+    const runway = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 0.04, 440),
+      new THREE.MeshStandardMaterial({
+        color: 0x0a2f47,
+        emissive: 0x0a8fa8,
+        emissiveIntensity: 0.28,
+        roughness: 0.5,
+        metalness: 0.35
+      })
+    );
+    runway.position.set(0, GROUND_Y + 0.06, -112);
+    scene.add(runway);
+
+    const pylonMaterial = new THREE.MeshStandardMaterial({
+      color: 0x07334d,
+      emissive: 0x28d9ff,
+      emissiveIntensity: 1.45,
+      roughness: 0.35,
+      metalness: 0.4
+    });
+    const pylonGeometry = new THREE.BoxGeometry(0.16, 5.4, 0.16);
+    const pylonTopGeometry = new THREE.SphereGeometry(0.2, 8, 6);
+    const pylons = [];
+
+    for (let i = 0; i < 18; i += 1) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const z = -22 - Math.floor(i / 2) * 24;
+      const pylon = new THREE.Group();
+
+      const post = new THREE.Mesh(pylonGeometry, pylonMaterial);
+      post.position.y = -1.95;
+      pylon.add(post);
+
+      const light = new THREE.Mesh(pylonTopGeometry, pylonMaterial);
+      light.position.y = 0.82;
+      pylon.add(light);
+
+      pylon.position.set(side * 8.8, 0, z);
+      scene.add(pylon);
+      pylons.push(pylon);
+    }
+
+    const particleCount = 230;
+    const particlePositions = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i += 1) {
+      particlePositions[i * 3] = (Math.random() - 0.5) * 28;
+      particlePositions[i * 3 + 1] = Math.random() * 15 - 4;
+      particlePositions[i * 3 + 2] = -Math.random() * 165;
+    }
+
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(particlePositions, 3)
+    );
+
+    const particles = new THREE.Points(
+      particleGeometry,
+      new THREE.PointsMaterial({
+        color: 0xbdf7ff,
+        size: 0.09,
+        transparent: true,
+        opacity: 0.66,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+      })
+    );
+    scene.add(particles);
+
+    /* ------------------------------------------------------------------ */
+    /* Bird                                                               */
+    /* ------------------------------------------------------------------ */
+
+    const bird = new THREE.Group();
+    bird.position.set(0, 0.15, 0);
+    scene.add(bird);
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffd93d,
+      roughness: 0.36,
+      metalness: 0.08,
+      emissive: 0x5a2a00,
+      emissiveIntensity: 0.18
+    });
+    const bellyMaterial = new THREE.MeshStandardMaterial({
+      color: 0xfff4cf,
+      roughness: 0.62,
+      metalness: 0.02
+    });
+    const wingMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffb703,
+      roughness: 0.45,
+      metalness: 0.05,
+      emissive: 0x4d2200,
+      emissiveIntensity: 0.14
+    });
+    const beakMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff7a00,
+      roughness: 0.4,
+      metalness: 0.05
+    });
+    const eyeWhiteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.25,
+      metalness: 0.02
+    });
+    const pupilMaterial = new THREE.MeshStandardMaterial({
+      color: 0x06101f,
+      roughness: 0.18,
+      metalness: 0.1
+    });
+
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.56, 32, 24),
+      bodyMaterial
+    );
+    body.scale.set(1, 0.92, 1.12);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    bird.add(body);
+
+    const belly = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 24, 18),
+      bellyMaterial
+    );
+    belly.position.set(0, -0.16, -0.22);
+    belly.scale.set(0.9, 0.75, 0.72);
+    belly.castShadow = true;
+    bird.add(belly);
+
+    const crestGeometry = new THREE.ConeGeometry(0.07, 0.27, 6);
+    for (let i = 0; i < 3; i += 1) {
+      const crest = new THREE.Mesh(crestGeometry, wingMaterial);
+      crest.position.set((i - 1) * 0.12, 0.55, -0.02);
+      crest.rotation.z = (i - 1) * -0.25;
+      crest.castShadow = true;
+      bird.add(crest);
+    }
+
+    function makeEye(x) {
+      const eye = new THREE.Group();
+      const white = new THREE.Mesh(
+        new THREE.SphereGeometry(0.135, 16, 12),
+        eyeWhiteMaterial
+      );
+      white.scale.set(1, 1.08, 0.62);
+      eye.add(white);
+
+      const pupil = new THREE.Mesh(
+        new THREE.SphereGeometry(0.067, 12, 8),
+        pupilMaterial
+      );
+      pupil.position.set(0, 0, -0.105);
+      eye.add(pupil);
+
+      eye.position.set(x, 0.28, -0.24);
+      eye.rotation.y = x > 0 ? 0.3 : -0.3;
+      bird.add(eye);
+    }
+
+    makeEye(-0.33);
+    makeEye(0.33);
+
+    const beak = new THREE.Mesh(
+      new THREE.ConeGeometry(0.16, 0.38, 12),
+      beakMaterial
+    );
+    beak.rotation.x = -Math.PI / 2;
+    beak.position.set(0, 0.02, -0.69);
+    beak.castShadow = true;
+    bird.add(beak);
+
+    const wingGeometry = new THREE.SphereGeometry(0.4, 16, 12);
+
+    const leftWingPivot = new THREE.Group();
+    leftWingPivot.position.set(-0.46, 0.05, 0.02);
+    const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+    leftWing.position.x = -0.18;
+    leftWing.scale.set(0.16, 0.52, 0.78);
+    leftWing.castShadow = true;
+    leftWingPivot.add(leftWing);
+    bird.add(leftWingPivot);
+
+    const rightWingPivot = new THREE.Group();
+    rightWingPivot.position.set(0.46, 0.05, 0.02);
+    const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+    rightWing.position.x = 0.18;
+    rightWing.scale.set(0.16, 0.52, 0.78);
+    rightWing.castShadow = true;
+    rightWingPivot.add(rightWing);
+    bird.add(rightWingPivot);
+
+    const tail = new THREE.Group();
+    tail.position.set(0, 0.02, 0.56);
+    const tailGeometry = new THREE.ConeGeometry(0.1, 0.46, 8);
+    for (let i = -1; i <= 1; i += 1) {
+      const feather = new THREE.Mesh(tailGeometry, wingMaterial);
+      feather.rotation.x = Math.PI / 2;
+      feather.rotation.z = i * 0.18;
+      feather.position.set(i * 0.13, 0, 0);
+      feather.castShadow = true;
+      tail.add(feather);
+    }
+    bird.add(tail);
+
+    const birdGlow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTexture,
+        color: 0xffe066,
+        transparent: true,
+        opacity: 0.36,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    birdGlow.scale.set(2.65, 2.65, 1);
+    birdGlow.position.set(0, 0.05, 0.35);
+    bird.add(birdGlow);
+
+    const birdLight = new THREE.PointLight(0xffd166, 2.4, 10, 2);
+    birdLight.position.set(0, 0.4, 0.5);
+    bird.add(birdLight);
+
+    const birdBox = new THREE.Box3();
+    const birdBoxSize = new THREE.Vector3(0.95, 0.72, 1.05);
+    const birdBoxCenter = new THREE.Vector3();
+
+    /* ------------------------------------------------------------------ */
+    /* Pipes                                                              */
+    /* ------------------------------------------------------------------ */
+
+    function makePipeTexture() {
+      const width = 128;
+      const height = 512;
+      const textureCanvas = document.createElement("canvas");
+      textureCanvas.width = width;
+      textureCanvas.height = height;
+      const context = textureCanvas.getContext("2d");
+
+      const base = context.createLinearGradient(0, 0, width, 0);
+      base.addColorStop(0, "#0a6b36");
+      base.addColorStop(0.18, "#35e878");
+      base.addColorStop(0.34, "#8dffb3");
+      base.addColorStop(0.52, "#1fbf5a");
+      base.addColorStop(0.72, "#5aff91");
+      base.addColorStop(0.86, "#168f46");
+      base.addColorStop(1, "#074c28");
+      context.fillStyle = base;
+      context.fillRect(0, 0, width, height);
+
+      for (let y = 0; y < height; y += 32) {
+        context.fillStyle = "rgba(0, 0, 0, 0.08)";
+        context.fillRect(0, y, width, 5);
+        context.fillStyle = "rgba(255, 255, 255, 0.06)";
+        context.fillRect(0, y + 5, width, 2);
+      }
+
+      for (let x = 0; x < width; x += 16) {
+        context.fillStyle = "rgba(255, 255, 255, 0.035)";
+        context.fillRect(x, 0, 2, height);
+      }
+
+      const texture = new THREE.CanvasTexture(textureCanvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(2, 2.5);
+      texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      return texture;
+    }
+
+    const pipeTexture = makePipeTexture();
+    const pipeMaterial = new THREE.MeshStandardMaterial({
+      map: pipeTexture,
+      color: 0xb2ffc9,
+      roughness: 0.32,
+      metalness: 0.16,
+      emissive: 0x0b5a2c,
+      emissiveIntensity: 0.24
+    });
+    const pipeCapMaterial = new THREE.MeshStandardMaterial({
+      color: 0xb6ffcf,
+      roughness: 0.24,
+      metalness: 0.34,
+      emissive: 0x26ff88,
+      emissiveIntensity: 0.68
+    });
+    const gapGlowMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: 0x49ff8a,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const pipes = [];
+
+    function spawnPipe(z, forcedGapCenter = null) {
+      const gapHeight = Math.max(3.08, 3.66 - state.score * 0.012);
+      const gapCenter = forcedGapCenter ?? THREE.MathUtils.randFloat(-0.7, 1.7);
+      const gapTop = gapCenter + gapHeight / 2;
+      const gapBottom = gapCenter - gapHeight / 2;
+
+      const topHeight = 14 - gapTop;
+      const bottomHeight = gapBottom - (-7);
+
+      const group = new THREE.Group();
+      group.position.z = z;
+
+      const top = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.05, 1.05, topHeight, 28, 1, false),
+        pipeMaterial
+      );
+      top.position.y = gapTop + topHeight / 2;
+      top.castShadow = true;
+      top.receiveShadow = true;
+      group.add(top);
+
+      const bottom = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.05, 1.05, bottomHeight, 28, 1, false),
+        pipeMaterial
+      );
+      bottom.position.y = gapBottom - bottomHeight / 2;
+      bottom.castShadow = true;
+      bottom.receiveShadow = true;
+      group.add(bottom);
+
+      const capGeometry = new THREE.CylinderGeometry(1.14, 1.14, 0.2, 28);
+      const topCap = new THREE.Mesh(capGeometry, pipeCapMaterial);
+      topCap.position.y = gapTop + 0.1;
+      topCap.castShadow = true;
+      group.add(topCap);
+
+      const bottomCap = new THREE.Mesh(capGeometry, pipeCapMaterial);
+      bottomCap.position.y = gapBottom - 0.1;
+      bottomCap.castShadow = true;
+      group.add(bottomCap);
+
+      const gapGlow = new THREE.Sprite(gapGlowMaterial);
+      gapGlow.position.y = gapCenter;
+      gapGlow.scale.set(4.2, 4.2, 1);
+      group.add(gapGlow);
+
+      group.userData = {
+        gapCenter,
+        gapHeight,
+        top,
+        bottom,
+        topBox: new THREE.Box3(),
+        bottomBox: new THREE.Box3(),
+        passed: false
+      };
+
+      scene.add(group);
+      pipes.push(group);
+    }
+
+    function disposePipe(pipe) {
+      pipe.traverse((object) => {
+        if (object.isMesh) {
+          object.geometry.dispose();
+        }
+      });
+      scene.remove(pipe);
+    }
+
+    function clearPipes() {
+      for (let i = pipes.length - 1; i >= 0; i -= 1) {
+        disposePipe(pipes[i]);
+      }
+      pipes.length = 0;
+    }
+
+    function maybeSpawnPipe() {
+      const lastPipe = pipes[pipes.length - 1];
+      const spacing = Math.max(21, state.speed * 1.45);
+
+      if (!lastPipe || lastPipe.position.z > -168 + spacing) {
+        spawnPipe((lastPipe ? lastPipe.position.z : -58) - spacing);
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Audio                                                              */
+    /* ------------------------------------------------------------------ */
+
+    let audioContext = null;
+    let masterGain = null;
+    let noiseBuffer = null;
+
+    function makeNoiseBuffer(context) {
+      const length = Math.floor(context.sampleRate * 0.6);
+      const buffer = context.createBuffer(1, length, context.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i += 1) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      return buffer;
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return;
+        }
+        audioContext = new AudioContextClass();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = soundOn ? 0.62 : 0;
+        masterGain.connect(audioContext.destination);
+        noiseBuffer = makeNoiseBuffer(audioContext);
+      }
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function playTone(frequency, endFrequency, duration, type = "sine", volume = 0.08, delay = 0) {
+      if (!audioContext || !soundOn) {
+        return;
+      }
+
+      const start = audioContext.currentTime + delay;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(Math.max(1, frequency), start);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        Math.max(1, endFrequency),
+        start + duration
+      );
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+      oscillator.connect(gain);
+      gain.connect(masterGain);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.03);
+    }
+
+    function playNoise(duration = 0.35, volume = 0.12, filterFrequency = 900) {
+      if (!audioContext || !soundOn || !noiseBuffer) {
+        return;
+      }
+
+      const start = audioContext.currentTime;
+      const source = audioContext.createBufferSource();
+      const filter = audioContext.createBiquadFilter();
+      const gain = audioContext.createGain();
+
+      source.buffer = noiseBuffer;
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(filterFrequency, start);
+      filter.frequency.exponentialRampToValueAtTime(120, start + duration);
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      source.start(start);
+      source.stop(start + duration);
+    }
+
+    function playFlap() {
+      ensureAudio();
+      playTone(390, 760, 0.1, "triangle", 0.075);
+      playTone(180, 120, 0.08, "sine", 0.035, 0.01);
+    }
+
+    function playScore() {
+      ensureAudio();
+      playTone(880, 880, 0.07, "square", 0.045);
+      playTone(1320, 1320, 0.09, "square", 0.04, 0.075);
+      playTone(1760, 1760, 0.11, "sine", 0.025, 0.15);
+    }
+
+    function playCrash() {
+      ensureAudio();
+      playNoise(0.52, 0.2, 760);
+      playTone(190, 38, 0.55, "sawtooth", 0.12);
+      playTone(92, 28, 0.45, "square", 0.08, 0.03);
+    }
+
+    function playStart() {
+      ensureAudio();
+      playTone(523.25, 523.25, 0.09, "triangle", 0.055);
+      playTone(659.25, 659.25, 0.09, "triangle", 0.055, 0.085);
+      playTone(783.99, 783.99, 0.09, "triangle", 0.055, 0.17);
+      playTone(1046.5, 1046.5, 0.14, "triangle", 0.06, 0.255);
+    }
+
+    function updateSoundButton() {
+      soundBtn.textContent = soundOn ? "🔊" : "🔇";
+      soundBtn.setAttribute("aria-label", soundOn ? "Mute sound" : "Enable sound");
+      soundBtn.setAttribute("title", soundOn ? "Mute sound" : "Enable sound");
+    }
+
+    function toggleSound() {
+      soundOn = !soundOn;
+      ensureAudio();
+
+      if (masterGain && audioContext) {
+        const now = audioContext.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+        masterGain.gain.linearRampToValueAtTime(soundOn ? 0.62 : 0, now + 0.08);
+      }
+
+      try {
+        localStorage.setItem(STORAGE_SOUND, soundOn ? "on" : "off");
+      } catch {
+        /* localStorage may be unavailable in private browsing. */
+      }
+
+      updateSoundButton();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* HUD and game state                                                 */
+    /* ------------------------------------------------------------------ */
+
+    function updateBestDisplay() {
+      bestEl.textContent = String(best);
+      finalBestEl.textContent = String(best);
+    }
+
+    function setScore(value, animate = true) {
+      scoreEl.textContent = String(value);
+      if (animate) {
+        scoreEl.classList.remove("pop");
+        void scoreEl.offsetWidth;
+        scoreEl.classList.add("pop");
+      }
+    }
+
+    function saveBest() {
+      if (state.score <= best) {
+        return;
+      }
+
+      best = state.score;
+      state.newBest = true;
+      try {
+        localStorage.setItem(STORAGE_BEST, String(best));
+      } catch {
+        /* localStorage may be unavailable in private browsing. */
+      }
+      updateBestDisplay();
+    }
+
+    function showGameOver() {
+      if (state.gameOverShown) {
+        return;
+      }
+
+      state.gameOverShown = true;
+      finalScoreEl.textContent = String(state.score);
+      finalBestEl.textContent = String(best);
+      newBestEl.classList.toggle("hidden", !state.newBest);
+      gameoverEl.classList.remove("hidden");
+    }
+
+    function crash() {
+      if (state.phase !== "playing") {
+        return;
+      }
+
+      state.phase = "over";
+      state.overTimer = 0;
+      state.gameOverShown = false;
+      state.crashShake = 1;
+      birdVelocity = Math.max(birdVelocity, 2.2);
+      saveBest();
+      playCrash();
+
+      flashEl.classList.remove("hit");
+      void flashEl.offsetWidth;
+      flashEl.classList.add("hit");
+
+      if (navigator.vibrate) {
+        navigator.vibrate([30, 45, 70]);
+      }
+    }
+
+    function startGame() {
+      ensureAudio();
+      state.phase = "playing";
+      state.score = 0;
+      state.speed = 14;
+      state.overTimer = 0;
+      state.gameOverShown = false;
+      state.crashShake = 0;
+      state.newBest = false;
+      birdVelocity = 0;
+      wingPhase = 0;
+      bird.position.set(0, 0.15, 0);
+      bird.rotation.set(0, 0, 0);
+
+      clearPipes();
+      spawnPipe(-46, 0.5);
+      spawnPipe(-73);
+      spawnPipe(-100);
+      maybeSpawnPipe();
+
+      setScore(0, false);
+      updateBestDisplay();
+      menuEl.classList.add("hidden");
+      gameoverEl.classList.add("hidden");
+      newBestEl.classList.add("hidden");
+      playStart();
+    }
+
+    function flap() {
+      if (state.phase !== "playing") {
+        return;
+      }
+
+      birdVelocity = FLAP_VELOCITY;
+      wingPhase = 0;
+      playFlap();
+    }
+
+    function handleAction() {
+      ensureAudio();
+
+      if (state.phase === "menu") {
+        startGame();
+        return;
+      }
+
+      if (state.phase === "playing") {
+        flap();
+        return;
+      }
+
+      if (state.phase === "over" && state.overTimer > 0.68) {
+        startGame();
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Update loop                                                        */
+    /* ------------------------------------------------------------------ */
+
+    function updateBird(delta) {
+      const playing = state.phase === "playing";
+
+      if (playing) {
+        birdVelocity += GRAVITY * delta;
+        bird.position.y += birdVelocity * delta;
+
+        if (bird.position.y > BIRD_MAX_Y) {
+          bird.position.y = BIRD_MAX_Y;
+          birdVelocity = Math.min(0, birdVelocity);
+        }
+
+        if (bird.position.y < BIRD_MIN_Y) {
+          bird.position.y = BIRD_MIN_Y;
+          crash();
+        }
+
+        const targetTilt = THREE.MathUtils.clamp(birdVelocity * 0.045, -0.48, 0.58);
+        bird.rotation.x = THREE.MathUtils.damp(bird.rotation.x, targetTilt, 9, delta);
+        bird.rotation.z = Math.sin(elapsed * 2.2) * 0.035;
+      } else if (state.phase === "menu") {
+        bird.position.y = 0.28 + Math.sin(elapsed * 1.8) * 0.3;
+        bird.rotation.x = THREE.MathUtils.damp(
+          bird.rotation.x,
+          Math.sin(elapsed * 1.8 + 0.5) * 0.06,
+          5,
+          delta
+        );
+        bird.rotation.z = Math.sin(elapsed * 1.2) * 0.06;
+      } else {
+        birdVelocity += GRAVITY * 0.82 * delta;
+        bird.position.y += birdVelocity * delta;
+        bird.rotation.x += delta * 2.6;
+        bird.rotation.z += delta * 5.2;
+
+        if (bird.position.y < GROUND_Y - 0.6) {
+          bird.position.y = GROUND_Y - 0.6;
+          birdVelocity = 0;
+        }
+      }
+
+      const wingSpeed = playing ? 18 : state.phase === "menu" ? 5.5 : 7;
+      wingPhase += delta * wingSpeed;
+      const flapWave = Math.sin(wingPhase);
+
+      leftWingPivot.rotation.z = -0.15 - flapWave * 0.82;
+      rightWingPivot.rotation.z = 0.15 + flapWave * 0.82;
+      tail.rotation.x = Math.sin(wingPhase * 0.5) * 0.1;
+
+      birdGlow.material.opacity = playing
+        ? 0.32 + Math.min(0.2, Math.abs(birdVelocity) * 0.012)
+        : 0.3;
+    }
+
+    function updatePipes(delta) {
+      if (state.phase === "playing") {
+        state.speed = Math.min(24, 14 + state.score * 0.3);
+
+        for (let i = pipes.length - 1; i >= 0; i -= 1) {
+          const pipe = pipes[i];
+          pipe.position.z += state.speed * delta;
+
+          if (!pipe.userData.passed && pipe.position.z > 1.4) {
+            pipe.userData.passed = true;
+            state.score += 1;
+            setScore(state.score);
+            playScore();
+          }
+
+          if (pipe.position.z > 14) {
+            disposePipe(pipe);
+            pipes.splice(i, 1);
+          }
+        }
+
+        maybeSpawnPipe();
+
+        birdBox.setFromCenterAndSize(
+          birdBoxCenter.set(bird.position.x, bird.position.y, bird.position.z),
+          birdBoxSize
+        );
+
+        for (const pipe of pipes) {
+          if (Math.abs(pipe.position.z) > 4.4) {
+            continue;
+          }
+
+          pipe.updateMatrixWorld(true);
+          const data = pipe.userData;
+          data.topBox.setFromObject(data.top).expandByScalar(0.1);
+          data.bottomBox.setFromObject(data.bottom).expandByScalar(0.1);
+
+          if (
+            birdBox.intersectsBox(data.topBox) ||
+            birdBox.intersectsBox(data.bottomBox)
+          ) {
+            crash();
+            break;
+          }
+        }
+
+        if (state.phase === "playing" && bird.position.y - birdBoxSize.y / 2 < GROUND_Y + 0.14) {
+          crash();
+        }
+      }
+    }
+
+    function updateWorld(delta) {
+      const worldSpeed =
+        state.phase === "playing" ? state.speed : state.phase === "over" ? 0.7 : 1.7;
+
+      for (const cloud of clouds) {
+        cloud.position.z += delta * (cloud.userData.speed + worldSpeed * 0.14);
+        cloud.position.x +=
+          Math.sin(elapsed * 0.22 + cloud.userData.phase) * delta * 0.55;
+        cloud.position.y =
+          cloud.userData.baseY + Math.sin(elapsed * 0.3 + cloud.userData.phase) * 0.3;
+
+        if (cloud.position.z > 22) {
+          cloud.position.z = -195;
+          cloud.position.x = (Math.random() - 0.5) * 76;
+          cloud.position.y = 8 + Math.random() * 15;
+          cloud.userData.baseY = cloud.position.y;
+        }
+      }
+
+      for (const pylon of pylons) {
+        pylon.position.z += delta * worldSpeed;
+        if (pylon.position.z > 18) {
+          pylon.position.z -= 216;
+        }
+      }
+
+      const positions = particleGeometry.attributes.position.array;
+      const particleSpeed = 5 + worldSpeed * 0.7;
+
+      for (let i = 0; i < particleCount; i += 1) {
+        positions[i * 3 + 2] += delta * particleSpeed;
+        if (positions[i * 3 + 2] > 14) {
+          positions[i * 3] = (Math.random() - 0.5) * 28;
+          positions[i * 3 + 1] = Math.random() * 15 - 4;
+          positions[i * 3 + 2] = -165 - Math.random() * 20;
+        }
+      }
+      particleGeometry.attributes.position.needsUpdate = true;
+
+      grid.position.z = -112 + ((elapsed * (4 + worldSpeed * 0.35)) % 2.82);
+
+      const shake = state.crashShake * 0.34;
+      state.crashShake = Math.max(0, state.crashShake - delta * 1.7);
+
+      camera.position.x = 0.7 + (Math.random() - 0.5) * shake;
+      camera.position.y =
+        3.35 +
+        bird.position.y * 0.32 +
+        (Math.random() - 0.5) * shake;
+      camera.position.z = 9.5 + (Math.random() - 0.5) * shake * 0.45;
+
+      camera.lookAt(
+        0,
+        0.92 + bird.position.y * 0.22,
+        -26
+      );
+
+      if (state.phase === "over") {
+        state.overTimer += delta;
+        if (!state.gameOverShown && state.overTimer > 0.58) {
+          showGameOver();
+        }
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Input and lifecycle                                                */
+    /* ------------------------------------------------------------------ */
+
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.code === "Space" || event.code === "ArrowUp") {
+          event.preventDefault();
+          if (!event.repeat) {
+            handleAction();
+          }
+        }
+      },
+      { passive: false }
+    );
+
+    window.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (event.target.closest("button")) {
+          return;
+        }
+        event.preventDefault();
+        handleAction();
+      },
+      { passive: false }
+    );
+
+    window.addEventListener(
+      "contextmenu",
+      (event) => {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    startBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      startGame();
+    });
+
+    restartBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      startGame();
+    });
+
+    soundBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleSound();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        clock.getDelta();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    updateBestDisplay();
+    updateSoundButton();
+
+    /* ------------------------------------------------------------------ */
+    /* Render loop                                                        */
+    /* ------------------------------------------------------------------ */
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.05);
+      elapsed += delta;
+
+      updateBird(delta);
+      updatePipes(delta);
+      updateWorld(delta);
+
+      renderer.render(scene, camera);
+    }
+
+    renderer.compile(scene, camera);
+    animate();
+
+    requestAnimationFrame(() => {
+      loadingEl.classList.add("done");
+      window.setTimeout(() => loadingEl.remove(), 700);
+    });
+
+    /* Small debug handle for manual smoke tests. */
+    window.__flappy3d = {
+      start: startGame,
+      flap,
+      crash,
+      state,
+      get score() {
+        return state.score;
+      },
+      get birdY() {
+        return bird.position.y;
+      }
+    };
+  </script>
+</body>
+</html>
