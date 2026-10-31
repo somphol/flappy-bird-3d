@@ -4,8 +4,8 @@
 | --- | --- |
 | Project | Flappy Bird 3D |
 | Started | 2026-10-31 17:03:58 UTC |
-| Completed | 2026-10-31 17:46:15 UTC |
-| Duration | **42m 17s** (2537.4 seconds) |
+| Completed | 2026-10-31 17:56:54 UTC |
+| Duration | **52m 56s** (3176.4 seconds) |
 | Harness | OpenCode 2.2.5 |
 | Model | DeepSeek V4.1 Flash (`opencode-go/deepseek-v4.1-flash`) |
 | Session | `ses_e6d14fab1ffe1Ks130scR0fjdU` |
@@ -16,13 +16,13 @@
 
 | Metric | Tokens |
 | --- | ---: |
-| Input | 62,247 |
-| Output | 58,500 |
-| Reasoning | 96,571 |
-| **Total (input + output + reasoning)** | **217,318** |
-| Cache read | 14,147,584 |
+| Input | 80,425 |
+| Output | 71,079 |
+| Reasoning | 112,752 |
+| **Total (input + output + reasoning)** | **264,256** |
+| Cache read | 21,752,960 |
 | Cache write | 0 |
-| Total including cache | 14,364,902 |
+| Total including cache | 22,017,216 |
 
 > Snapshot taken from the OpenCode session record when the project was packaged. Publishing commands and the final response are outside this snapshot.
 

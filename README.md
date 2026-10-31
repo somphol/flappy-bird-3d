@@ -28,16 +28,18 @@ Three.js is loaded from jsDelivr, so the first load needs an internet connection
 | Drag | Orbit left / right and look up / down |
 | `ArrowLeft` / `ArrowRight` / `ArrowUp` / `ArrowDown` | Orbit left / right and look up / down |
 | `F` or the flip button | Flip between the left and right side views |
-| `R` or the crosshair button | Recenter behind the bird |
+| Mouse wheel / `+` / `−` / zoom buttons | Zoom in and out |
+| `R` or the crosshair button | Reset the view, including zoom |
 | Click / tap after a crash | Restart |
 | Sound button (top right) | Mute / unmute |
 
-On touch screens, drag with one finger to orbit the camera. Tap with a second finger to flap while holding the look drag. Drag all the way around to see the bird from the front.
+On touch screens, drag with one finger to orbit the camera and use the on-screen `+` / `−` buttons to zoom. Tap with a second finger to flap while holding the look drag. Drag all the way around to see the bird from the front.
 
 ## Features
 
 - Third-person chase camera behind a glowing, low-poly bird
-- Orbit camera: drag or use the arrow keys to swing around the bird, look up or down, and even see the front view; flip and recenter controls included
+- Orbit camera: drag or use the arrow keys to swing around the bird, look up or down, and even see the front view; flip and reset controls included
+- Zoomable view: mouse wheel, `+` / `−` keys, or on-screen zoom buttons
 - Endless 3D pipe corridor with textured green cylinders, bright caps, and a soft gap glow
 - Bounding-box collision against pipe geometry and the ground
 - Flap impulse and gravity physics with bird tilt, wing animation, and a gentle camera follow
