@@ -23,14 +23,20 @@ Three.js is loaded from jsDelivr, so the first load needs an internet connection
 
 | Input | Action |
 | --- | --- |
-| `Space` / `ArrowUp` | Flap |
+| `Space` | Flap |
 | Click / tap | Flap |
+| Drag | Look left / right / up / down |
+| `ArrowLeft` / `ArrowRight` / `ArrowUp` / `ArrowDown` | Look left / right / up / down |
+| `R` or the crosshair button | Recenter the view |
 | Click / tap after a crash | Restart |
 | Sound button (top right) | Mute / unmute |
+
+On touch screens, drag with one finger to look around. Tap with a second finger to flap while holding the look drag.
 
 ## Features
 
 - Third-person chase camera behind a glowing, low-poly bird
+- Free-look camera: drag or use the arrow keys to tilt the view left, right, up, or down, with one-key recenter
 - Endless 3D pipe corridor with textured green cylinders, bright caps, and a soft gap glow
 - Bounding-box collision against pipe geometry and the ground
 - Flap impulse and gravity physics with bird tilt, wing animation, and a gentle camera follow

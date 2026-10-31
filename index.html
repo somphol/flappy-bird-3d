@@ -56,6 +56,11 @@
       width: 100%;
       height: 100%;
       display: block;
+      cursor: grab;
+    }
+
+    body.dragging #scene {
+      cursor: grabbing;
     }
 
     #vignette {
@@ -87,7 +92,9 @@
 
     .hud-block.right {
       display: flex;
+      align-items: center;
       justify-content: flex-end;
+      gap: 8px;
     }
 
     .label {
@@ -149,7 +156,8 @@
       100% { transform: skew(-4deg) scale(1); }
     }
 
-    #sound {
+    #sound,
+    #recenter {
       pointer-events: auto;
       width: 44px;
       height: 44px;
@@ -166,13 +174,42 @@
       transition: transform 0.15s ease, background 0.15s ease;
     }
 
-    #sound:hover {
+    #sound:hover,
+    #recenter:hover {
       transform: scale(1.06);
       background: rgba(14, 38, 72, 0.72);
     }
 
-    #sound:active {
+    #sound:active,
+    #recenter:active {
       transform: scale(0.96);
+    }
+
+    .look-hint {
+      position: absolute;
+      left: 50%;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 5;
+      padding: 8px 14px;
+      border: 1px solid rgba(137, 231, 255, 0.16);
+      border-radius: 999px;
+      background: rgba(6, 18, 40, 0.46);
+      color: rgba(255, 255, 255, 0.52);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      line-height: 1;
+      text-transform: uppercase;
+      pointer-events: none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transform: translateX(-50%);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .look-hint.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(8px);
     }
 
     .overlay {
@@ -320,7 +357,8 @@
     }
 
     button.primary:focus-visible,
-    #sound:focus-visible {
+    #sound:focus-visible,
+    #recenter:focus-visible {
       outline: 2px solid var(--cyan);
       outline-offset: 3px;
     }
@@ -581,9 +619,12 @@
         <div id="score">0</div>
       </div>
       <div class="hud-block right">
+        <button id="recenter" type="button" aria-label="Recenter view" title="Recenter view (R)">⌖</button>
         <button id="sound" type="button" aria-label="Toggle sound" title="Toggle sound">🔊</button>
       </div>
     </header>
+
+    <div id="lookHint" class="look-hint" aria-hidden="true">Drag / arrow keys to look around</div>
 
     <section id="menu" class="overlay" aria-label="Start screen">
       <div class="card menu-card">
@@ -591,7 +632,7 @@
         <h1>FLAPPY<span>3D</span></h1>
         <p class="tagline">Thread the pipes. Chase the horizon. One tiny flap at a time.</p>
         <button id="startBtn" class="primary" type="button">Press Space / Tap to Fly</button>
-        <p class="hint">Space, click, or tap to flap</p>
+        <p class="hint">Space or tap to flap · drag to look</p>
         <p class="credits">Built with <strong>OpenCode</strong> × <strong>DeepSeek V4.1 Flash</strong></p>
       </div>
     </section>
@@ -612,7 +653,7 @@
         </div>
         <div id="newBest" class="badge hidden">New Best!</div>
         <button id="restartBtn" class="primary" type="button">Tap / Press Space to Restart</button>
-        <p class="hint">Keep the bird between the pipes</p>
+        <p class="hint">Drag to look · R to recenter</p>
       </div>
     </section>
 
@@ -655,6 +696,8 @@
     const gameoverEl = document.getElementById("gameover");
     const flashEl = document.getElementById("flash");
     const soundBtn = document.getElementById("sound");
+    const recenterBtn = document.getElementById("recenter");
+    const lookHint = document.getElementById("lookHint");
     const startBtn = document.getElementById("startBtn");
     const restartBtn = document.getElementById("restartBtn");
 
@@ -696,6 +739,29 @@
       newBest: false
     };
 
+    const LOOK_YAW_LIMIT = 1.15;
+    const LOOK_PITCH_LIMIT = 0.55;
+    const LOOK_DRAG_YAW = 0.0035;
+    const LOOK_DRAG_PITCH = 0.003;
+    const LOOK_KEY_YAW = 1.7;
+    const LOOK_KEY_PITCH = 1.15;
+
+    const look = {
+      yaw: 0,
+      pitch: 0,
+      targetYaw: 0,
+      targetPitch: 0,
+      dragging: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      lastX: 0,
+      lastY: 0,
+      moved: false,
+      hintDismissed: false
+    };
+
+    const lookKeys = new Set();
     let birdVelocity = 0;
     let wingPhase = 0;
     let elapsed = 0;
@@ -1558,6 +1624,61 @@
       }
     }
 
+    function dismissLookHint() {
+      if (look.hintDismissed) {
+        return;
+      }
+      look.hintDismissed = true;
+      lookHint.classList.add("hidden");
+    }
+
+    function resetLook() {
+      look.targetYaw = 0;
+      look.targetPitch = 0;
+      dismissLookHint();
+    }
+
+    function updateLookFromKeys(delta) {
+      let changed = false;
+
+      if (lookKeys.has("ArrowLeft")) {
+        look.targetYaw = THREE.MathUtils.clamp(
+          look.targetYaw - LOOK_KEY_YAW * delta,
+          -LOOK_YAW_LIMIT,
+          LOOK_YAW_LIMIT
+        );
+        changed = true;
+      }
+      if (lookKeys.has("ArrowRight")) {
+        look.targetYaw = THREE.MathUtils.clamp(
+          look.targetYaw + LOOK_KEY_YAW * delta,
+          -LOOK_YAW_LIMIT,
+          LOOK_YAW_LIMIT
+        );
+        changed = true;
+      }
+      if (lookKeys.has("ArrowUp")) {
+        look.targetPitch = THREE.MathUtils.clamp(
+          look.targetPitch + LOOK_KEY_PITCH * delta,
+          -LOOK_PITCH_LIMIT,
+          LOOK_PITCH_LIMIT
+        );
+        changed = true;
+      }
+      if (lookKeys.has("ArrowDown")) {
+        look.targetPitch = THREE.MathUtils.clamp(
+          look.targetPitch - LOOK_KEY_PITCH * delta,
+          -LOOK_PITCH_LIMIT,
+          LOOK_PITCH_LIMIT
+        );
+        changed = true;
+      }
+
+      if (changed) {
+        dismissLookHint();
+      }
+    }
+
     /* ------------------------------------------------------------------ */
     /* Update loop                                                        */
     /* ------------------------------------------------------------------ */
@@ -1710,6 +1831,10 @@
 
       grid.position.z = -112 + ((elapsed * (4 + worldSpeed * 0.35)) % 2.82);
 
+      updateLookFromKeys(delta);
+      look.yaw = THREE.MathUtils.damp(look.yaw, look.targetYaw, 14, delta);
+      look.pitch = THREE.MathUtils.damp(look.pitch, look.targetPitch, 14, delta);
+
       const shake = state.crashShake * 0.34;
       state.crashShake = Math.max(0, state.crashShake - delta * 1.7);
 
@@ -1720,11 +1845,16 @@
         (Math.random() - 0.5) * shake;
       camera.position.z = 9.5 + (Math.random() - 0.5) * shake * 0.45;
 
-      camera.lookAt(
-        0,
-        0.92 + bird.position.y * 0.22,
-        -26
-      );
+      const lookDistance = 28;
+      const lookPitchCos = Math.cos(look.pitch);
+      const lookX = Math.sin(look.yaw) * lookDistance * lookPitchCos;
+      const lookY =
+        0.92 +
+        bird.position.y * 0.22 +
+        Math.sin(look.pitch) * lookDistance;
+      const lookZ = -Math.cos(look.yaw) * lookDistance * lookPitchCos;
+
+      camera.lookAt(lookX, lookY, lookZ);
 
       if (state.phase === "over") {
         state.overTimer += delta;
@@ -1741,15 +1871,60 @@
     window.addEventListener(
       "keydown",
       (event) => {
-        if (event.code === "Space" || event.code === "ArrowUp") {
+        if (event.code === "Space") {
           event.preventDefault();
           if (!event.repeat) {
             handleAction();
           }
+          return;
+        }
+
+        if (event.code === "KeyR") {
+          event.preventDefault();
+          resetLook();
+          return;
+        }
+
+        if (
+          event.code === "ArrowLeft" ||
+          event.code === "ArrowRight" ||
+          event.code === "ArrowUp" ||
+          event.code === "ArrowDown"
+        ) {
+          event.preventDefault();
+          lookKeys.add(event.code);
+          dismissLookHint();
         }
       },
       { passive: false }
     );
+
+    window.addEventListener(
+      "keyup",
+      (event) => {
+        if (event.code.startsWith("Arrow")) {
+          event.preventDefault();
+          lookKeys.delete(event.code);
+        }
+      },
+      { passive: false }
+    );
+
+    function endLookPointer(event, allowAction) {
+      if (!look.dragging || event.pointerId !== look.pointerId) {
+        return;
+      }
+
+      const wasMoved = look.moved;
+      look.dragging = false;
+      look.pointerId = null;
+      look.moved = false;
+      document.body.classList.remove("dragging");
+
+      if (allowAction && !wasMoved) {
+        handleAction();
+      }
+    }
 
     window.addEventListener(
       "pointerdown",
@@ -1757,11 +1932,101 @@
         if (event.target.closest("button")) {
           return;
         }
+
+        if (event.pointerType === "mouse" && event.button !== 0) {
+          return;
+        }
+
+        // A second finger (or another pointer) flaps while the first one looks.
+        if (look.dragging) {
+          handleAction();
+          return;
+        }
+
         event.preventDefault();
-        handleAction();
+        look.dragging = true;
+        look.pointerId = event.pointerId;
+        look.startX = event.clientX;
+        look.startY = event.clientY;
+        look.lastX = event.clientX;
+        look.lastY = event.clientY;
+        look.moved = false;
+        document.body.classList.add("dragging");
+
+        try {
+          canvas.setPointerCapture(event.pointerId);
+        } catch {
+          /* Pointer capture is a progressive enhancement. */
+        }
       },
       { passive: false }
     );
+
+    window.addEventListener(
+      "pointermove",
+      (event) => {
+        if (!look.dragging || event.pointerId !== look.pointerId) {
+          return;
+        }
+
+        event.preventDefault();
+
+        const totalDx = event.clientX - look.startX;
+        const totalDy = event.clientY - look.startY;
+
+        if (!look.moved && Math.hypot(totalDx, totalDy) > 6) {
+          look.moved = true;
+          dismissLookHint();
+        }
+
+        if (!look.moved) {
+          return;
+        }
+
+        const dx = event.clientX - look.lastX;
+        const dy = event.clientY - look.lastY;
+
+        look.targetYaw = THREE.MathUtils.clamp(
+          look.targetYaw + dx * LOOK_DRAG_YAW,
+          -LOOK_YAW_LIMIT,
+          LOOK_YAW_LIMIT
+        );
+        look.targetPitch = THREE.MathUtils.clamp(
+          look.targetPitch - dy * LOOK_DRAG_PITCH,
+          -LOOK_PITCH_LIMIT,
+          LOOK_PITCH_LIMIT
+        );
+
+        look.lastX = event.clientX;
+        look.lastY = event.clientY;
+      },
+      { passive: false }
+    );
+
+    window.addEventListener(
+      "pointerup",
+      (event) => {
+        event.preventDefault();
+        endLookPointer(event, true);
+      },
+      { passive: false }
+    );
+
+    window.addEventListener(
+      "pointercancel",
+      (event) => {
+        endLookPointer(event, false);
+      },
+      { passive: false }
+    );
+
+    window.addEventListener("blur", () => {
+      lookKeys.clear();
+      look.dragging = false;
+      look.pointerId = null;
+      look.moved = false;
+      document.body.classList.remove("dragging");
+    });
 
     window.addEventListener(
       "contextmenu",
@@ -1786,8 +2051,15 @@
       toggleSound();
     });
 
+    recenterBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      resetLook();
+    });
+
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
+      if (document.hidden) {
+        lookKeys.clear();
+      } else {
         clock.getDelta();
       }
     });
@@ -1801,6 +2073,7 @@
 
     updateBestDisplay();
     updateSoundButton();
+    window.setTimeout(dismissLookHint, 12000);
 
     /* ------------------------------------------------------------------ */
     /* Render loop                                                        */
@@ -1831,7 +2104,9 @@
       start: startGame,
       flap,
       crash,
+      resetLook,
       state,
+      look,
       get score() {
         return state.score;
       },
