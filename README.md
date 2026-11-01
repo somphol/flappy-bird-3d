@@ -1,10 +1,21 @@
+<div align="center">
+
+<img src="docs/social-card.png" alt="Flappy Bird 3D — One-File Arcade Flyer" width="100%" />
+
 # Flappy Bird 3D
 
-A complete, polished 3D Flappy Bird game in **one self-contained HTML file**. Built with Three.js, vanilla JavaScript, CSS, and the Web Audio API.
+**One-File Arcade Flyer**
 
-![Flappy Bird 3D gameplay](screenshot.png)
+A complete, polished 3D Flappy Bird built with Three.js, vanilla JavaScript, CSS, and the Web Audio API.
 
-**Live demo:** <https://somphol.github.io/flappy-bird-3d/>
+[![Live demo](https://img.shields.io/badge/live_demo-online-38bdf8?style=flat-square)](https://somphol.github.io/flappy-bird-3d/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-38bdf8?style=flat-square)](LICENSE)
+
+**[Try it live →](https://somphol.github.io/flappy-bird-3d/)**
+
+</div>
+
+---
 
 ## Play
 
