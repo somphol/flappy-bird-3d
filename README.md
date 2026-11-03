@@ -98,6 +98,12 @@ documentation fixes alike. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and th
 
 | Document | Purpose |
 | --- | --- |
+| [AGENTS.md](AGENTS.md) | Handoff for the next maintainer or AI agent |
+| [docs/REPRODUCTION.md](docs/REPRODUCTION.md) | Rebuild and verification book |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module map, physics, camera and algorithms |
+| [docs/TESTING.md](docs/TESTING.md) | Verified matrix, manual cases, and gaps |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | GitHub Pages operations and rollback |
+| [skills/flappy-bird-3d/SKILL.md](skills/flappy-bird-3d/SKILL.md) | Reusable build skill and template |
 | [README.md](README.md) | Overview, setup, controls, and architecture |
 | [CHANGELOG.md](CHANGELOG.md) | Notable changes and release history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Local workflow, constraints, and pull request checks |
